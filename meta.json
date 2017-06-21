@@ -1,0 +1,20 @@
+{
+    "description": "Digitizer probe head scan", 
+    "hooks": [], 
+    "required_bundles": [], 
+    "icon": "", 
+    "author_uri": "mailto:dk@fabtotum.com", 
+    "name": "Digitizer", 
+    "author": "FABteam", 
+    "menu": {
+        "/make/fab_digitizer": {
+            "url": "plugin/fab_digitizer", 
+            "title": "Digitizer", 
+            "icon": "fa-cube"
+        }
+    }, 
+    "plugin_uri": "https://github.com/FABtotum/fab_digitizer", 
+    "version": "0.10.0", 
+    "plugin_slug": "fab_digitizer", 
+    "filetypes": []
+}
