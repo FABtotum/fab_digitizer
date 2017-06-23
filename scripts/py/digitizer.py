@@ -203,6 +203,9 @@ class Application(GCodePusher):
             self.set_task_status(GCodePusher.TASK_COMPLETED)
         
         self.stop()
+        
+    def run_test(self, x1, y1, x2, y2):
+        pass
 
 def main():
     config = ConfigService()
@@ -232,6 +235,7 @@ def main():
     parser.add_argument('--help', action='help', help="Show this help message and exit" )
     parser.add_argument("--email",             help="Send an email on task finish", action='store_true', default=False)
     parser.add_argument("--shutdown",          help="Shutdown on task finish", action='store_true', default=False )
+    parser.add_argument("--test",              help="Only touch the 4 corners as a visual area test", action='store_true', default=False )
     
     # GET ARGUMENTS
     args = parser.parse_args()

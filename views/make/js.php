@@ -12,7 +12,7 @@
 
 	var buildPlateDimensions = {
 		probe: {
-			minX : 10,
+			minX : 0,
 			maxX : 210,
 			minY : 12,
 			maxY : 230,
@@ -52,7 +52,29 @@
 		//initProbeCrop();
 		initProbingAreaSelector();
 		<?php endif; ?>
+		
+		$("#test-area-button").on('click', function(e){
+			//var result = area_select.areaselect('transform', 50, 50, 300, 300);
+			//console.log(result);
+		});
+		
+		$(".area-data").on('change', areaDataChange );
 	});
+	
+	function areaDataChange()
+	{
+		var x1 = parseInt($(".probing-x1").val());
+		var y1 = parseInt($(".probing-y1").val());
+		var x2 = parseInt($(".probing-x2").val());
+		var y2 = parseInt($(".probing-y2").val());
+		
+		var result = area_select.areaselect('transform', x1, y1, Math.abs(x2-x1), Math.abs(y2-y1));
+		console.log(result);
+		//~ $(".probing-x1").val(x1.toFixed());
+		//~ $(".probing-y1").val(y1.toFixed());
+		//~ $(".probing-x2").val(x2.toFixed());
+		//~ $(".probing-y2").val(y2.toFixed());
+	}
 	
 	function initProbingAreaSelector()
 	{
@@ -80,10 +102,10 @@
 		
 		//var realWidth
 		
-		var touch_options = {
+		var area_options = {
 			guides: false,
 			center: false,
-			highlight: true,
+			highlight: false,
 			background: false,
 			disabled: false,
 
@@ -109,7 +131,24 @@
 			maxHeight: probeMaxHeight,
 		 };
 		 
-		 area_select =  $('.bed-image').areaselect(touch_options);
+		 area_select = $('.bed-image').areaselect(area_options);
+		 area_select.on({
+			'change':function(data){
+				var x1 = data.x;
+				var y1 = data.y;
+				var x2 = data.x + data.width;
+				var y2 = data.y + data.height;
+				$(".probing-x1").val(x1.toFixed());
+				$(".probing-y1").val(y1.toFixed());
+				$(".probing-x2").val(x2.toFixed());
+				$(".probing-y2").val(y2.toFixed());
+			}
+		});
+		
+		$(".probing-x1").val(area_options.initX);
+		$(".probing-y1").val(area_options.initY);
+		$(".probing-x2").val(area_options.initX+area_options.initWidth);
+		$(".probing-y2").val(area_options.initY+area_options.initHeight);
 	}
 	
 	/**

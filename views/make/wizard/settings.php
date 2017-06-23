@@ -40,14 +40,15 @@
 <hr class="simple">
 <div class="row">
 	<div class="col-sm-3 text-center">
-		<!--div>
-			<img style="max-width: 100%;" id="image" class="" src="/assets/img/controllers/scan/working_plane_v2.jpg">
-		</div-->
-		
-		<div class="touch-container">
-			<img class="bed-image" src="/assets/img/std/hybrid_bed_v2_small.jpg" >
+		<div>
+			<div class="touch-container">
+				<img class="bed-image" src="/assets/img/std/hybrid_bed_v2_small.jpg" >
+			</div>
+			<button type="button" class="btn btn-default btn-sm btn-block" data-skip-homing="false" id="test-area-button"><?php echo _("Test area");?> <i class="fa fa-level-down"></i> </button>
+			<div class="note">
+				<p><?php echo _("Press to test the selected area"); ?></p>
+			</div>
 		</div>
-		
 	</div>
 	<div class="col-sm-9">
 		<div class="row">
@@ -56,7 +57,7 @@
 					<label><?php echo _("First point");?></label>
 					<div class="input-group">
 						<span class="input-group-addon">x</span>
-						<input class="form-control probing-x1" type="number">
+						<input class="form-control probing-x1 area-data" type="number">
 					</div>  
 				</div>
 			</div>
@@ -65,7 +66,7 @@
 					<label>&nbsp;</label>
 					<div class="input-group">
 						<span class="input-group-addon">y</span>
-						<input class="form-control probing-y1"  type="number">
+						<input class="form-control probing-y1 area-data"  type="number">
 					</div>  
 				</div>
 			</div>
@@ -76,7 +77,7 @@
 					<label><?php echo _("Second point");?></label>
 					<div class="input-group">
 						<span class="input-group-addon">x</span>
-						<input class="form-control probing-x2" type="number">
+						<input class="form-control probing-x2 area-data" type="number">
 					</div>  
 				</div>
 			</div>
@@ -85,7 +86,7 @@
 					<label>&nbsp;</label>
 					<div class="input-group">
 						<span class="input-group-addon">y</span>
-						<input class="form-control probing-y2" type="number">
+						<input class="form-control probing-y2 area-data" type="number">
 					</div>  
 				</div>
 			</div>

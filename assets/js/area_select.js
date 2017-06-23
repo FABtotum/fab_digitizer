@@ -67,6 +67,7 @@
   var EVENT_MOVE_START = 'movestart.' + NAMESPACE;
   var EVENT_MOVE = 'move.' + NAMESPACE;
   var EVENT_MOVE_END = 'moveend.' + NAMESPACE;
+  var EVENT_CHANGE = 'change';
   
     // Actions
   var ACTION_EAST = 'e';
@@ -254,54 +255,6 @@
       this.$clone = null;
     },
     
-    /*cursor: function(x, y) {
-      var options = this.options;
-      var canvas = this.canvas;
-      
-      var width = this.$canvas.width();
-      var height = this.$canvas.height();
-      
-      var max_x = Math.max(options.left, options.right);
-      var min_x = Math.min(options.left, options.right);
-      var max_y = Math.max(options.top, options.bottom);
-      var min_y = Math.min(options.top, options.bottom);
-      
-      var mx = Math.max(x, min_x);
-      var my = Math.max(y, min_y);
-      
-      mx = Math.min(x, max_x);
-      my = Math.min(y, max_y);
-      
-      this.cursorX = mx;
-      this.cursorY = my;
-      
-      console.log("cursor set:", x, y, "mapped:", mx, my);
-      
-      var mappedWidth = options.right - options.left;
-      var mappedX1 = options.left;
-      var mappedX2 = options.right;
-      var mappedHeight = options.bottom - options.top;
-      var mappedY1 = options.top;
-      var mappedY2 = options.bottom;
-      
-      var offX = Math.min(mappedX1, mappedX2)
-      var offY = Math.min(mappedY1, mappedY2)
-      
-      var px = (mx-offX) / mappedWidth;
-      var py = (my-offY) / mappedHeight;
-      
-      var rx = width * px;
-      var ry = height + height * py;
-      
-      // move the cursor
-      this.$cross.css(
-        {
-          left:rx-8,
-          top:ry-8
-        }
-      );
-    },*/
-    
     startMove: function(event) {
       var options = this.options;
       var canvas = this.canvas;
@@ -400,21 +353,99 @@
         this.endX = e.pageX || originalEvent && originalEvent.pageX;
         this.endY = e.pageY || originalEvent && originalEvent.pageY;
         
-        this.change(event);
+        var startPoint = this.toMappedCoordinates(this.startX, this.startY);
+        var endPoint = this.toMappedCoordinates(this.endX, this.endY);
+        
+        this.manipulate(action, endPoint.x - startPoint.x, startPoint.y - endPoint.y);
       }
     },
     
-    change: function(event) {
+    moveTo: function(x, y) {
       var options = this.options;
-      var e = event;
-      var action = this.action;
       
-      var startPoint = this.toMappedCoordinates(this.startX, this.startY);
-      var endPoint = this.toMappedCoordinates(this.endX, this.endY);
+      var width = this.areaWidth;
+      var height = this.areaHeight;
+      
+      var maxX = options.maxX - width;
+      var maxY = options.maxY - height;
+      
+      if(x < options.minX)
+        x = options.minX;
+        
+      if(x > maxX)
+        x = maxX;
+        
+      if(y < options.minY)
+        y = options.minY;
+        
+      if(y > maxY)
+        y = maxY;
+      
+      this.areaX = x;
+      this.areaY = y;
+      
+      this.renderAreaBox();
+      
+      return {x:x, y:y};
+    },
+    
+    moveBy: function(x, y) {
+      x += this.areaX;
+      y += this.areaY;
+      return this.moveTo(x, y);
+    },
+    
+    transform: function(x, y, w, h) {
+      var options = this.options;
+      
+      var maxX = options.maxX - options.minWidth;
+      var maxY = options.maxY - options.minHeight;
+      var minX = options.minX;
+      var minY = options.minY;
+      
+      if(x < minX)
+        x = minX;
+        
+      if(x > maxX)
+        x = maxX;
+        
+      if(y < minY)
+        y = minY;
+        
+      if(y > maxY)
+        y = maxY;
+      
+      this.areaX = x;
+      this.areaY = y;
+      
+      var maxX = options.maxX;
+      var maxY = options.maxY;
+      
+      if( (x+w) > maxX )
+        w = min(maxX - x, options.maxWidth);
+        
+      if( (y+h) > maxY )
+        h = min(maxY - y, options.maxHeight);
+      
+      this.areaWidth = w;
+      this.areaHeight = h;
+      
+      this.renderAreaBox();
+      
+      return {
+        x: x,
+        y: y,
+        width: w,
+        height: h
+      };
+    },
+    
+    manipulate: function(action, dx, dy) {
+      var options = this.options;
       
       var delta = {
-        x: endPoint.x - startPoint.x,
-        y: startPoint.y - endPoint.y,
+        x: dx,
+        y: dy,
       };
       
       var left  = this.areaX, 
@@ -483,9 +514,7 @@
           left += delta.x;
           break;
       };
-      
-      console.log(left, top, width, height);
-      
+
       if(height > maxHeight)
         height = maxHeight;
         
@@ -513,6 +542,15 @@
       
       this.startX = this.endX;
       this.startY = this.endY;
+      
+      var data = {
+          x: left,
+          y: top,
+          width: width,
+          height: height
+      };
+      
+      this.trigger(EVENT_CHANGE, data);
     },
     
     renderAreaBox: function () {
@@ -554,8 +592,6 @@
         x: px*mappedWidth,
         y: py*mappedHeight
       };
-      
-      console.log(x,y, '->', rx, ry);
       
       return data;
     },
@@ -602,106 +638,6 @@
       
       return point;
     },
-    
-    applyLimits: function(x, y)
-    {
-      /*
-      var options = this.options;
-      var max_x = options.minX + options.maxWidth;
-      var min_x = options.minX;
-      var max_y = options.minY + options.maxHeight;
-      var min_y = options.minY;
-      
-      var mx = Math.max(x, min_x);
-      var my = Math.max(y, min_y);
-      
-      mx = Math.min(mx, max_x);
-      my = Math.min(my, max_y);
-      */
-      
-      var point = {
-         x: x,
-         y: y
-      };
-      
-      return point;
-    },
-    
-    /*touch: function(event) {
-      var options = this.options;
-      var canvas = this.canvas;
-      var originalEvent = event.originalEvent;
-      var touches = originalEvent && originalEvent.touches;
-      var e = event;
-      var touchesLength;
-      var $areaselect = this.$areaselect;
-      
-      if (this.isDisabled) {
-        return;
-      }
-      
-      if (touches) {
-        touchesLength = touches.length;
-
-        if (touchesLength > 1) {
-            return;
-        }
-
-        e = touches[0];
-      }
-      
-      event.preventDefault();
-      
-      // IE8  has `event.pageX/Y`, but not `event.originalEvent.pageX/Y`
-      // IE10 has `event.originalEvent.pageX/Y`, but not `event.pageX/Y`
-      this.touchX = e.pageX || originalEvent && originalEvent.pageX;
-      this.touchY = e.pageY || originalEvent && originalEvent.pageY;
-      
-      var offset2 = this.$canvas.offset();
-      var width = this.$canvas.width();
-      var height = this.$canvas.height();
-      
-      var rx = this.touchX-offset2.left;
-      var ry = this.touchY-offset2.top;
-      
-      rx = Math.max(rx, 0);
-      ry = Math.max(ry, 0);
-      
-      rx = Math.min(rx, width);
-      ry = Math.min(ry, height);
-      
-      var px = rx / width;
-      var py = ry / height;      
-      
-      // trigger touch event with mapped coordinates
-      
-      var mappedWidth = options.right - options.left;
-      var mappedX = options.left;
-      var mappedHeight = options.bottom - options.top;
-      var mappedY = options.top;
-      
-      var data = {
-        x: mappedX + px*mappedWidth,
-        y: mappedY + py*mappedHeight
-      };
-      
-      var execute = true;
-      if(options.touch)
-      {
-        var data_abs = {
-          x: data.x - this.zeroX,
-          y: data.y - this.zeroY
-        };
-        
-        execute = options.touch(data_abs);
-      }
-      
-      if(execute)
-      {
-        this.cursor(data.x, data.y);
-        this.trigger(EVENT_TOUCH, data);
-      }
-    },*/
         
     build: function () {
       
@@ -740,6 +676,8 @@
       if (options.background) {
         $areaselect.addClass(CLASS_BG);
       }
+      
+      $areaBox.addClass(CLASS_MOVE).data(DATA_ACTION, ACTION_ALL);
 
       // Hide the original image
       $this.addClass(CLASS_HIDE).after($areaselect);
@@ -825,6 +763,7 @@
       if (ratio !== 1 || $container.height() !== container.height) {
         this.initContainer();
         this.initCanvas();
+        this.renderAreaBox();
       }
       
     },
@@ -948,7 +887,7 @@
           '<span class="areaselect-face"></span>' +
         '</div>' +
         
-        '<div class="areaselect-drag-box" data-action="all">' +
+        '<div class="areaselect-drag-box">' +
           '<span class="areaselect-line line-e" data-action="e"></span>' +
           '<span class="areaselect-line line-n" data-action="n"></span>' +
           '<span class="areaselect-line line-w" data-action="w"></span>' +
