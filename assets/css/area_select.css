@@ -1,0 +1,367 @@
+.areaselect-container {
+  font-size: 0;
+  line-height: 0;
+
+  float: left;
+  position: absolute;
+
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+
+  direction: ltr !important;
+  
+  transform: translate(0%, -100%);
+  
+  /*background-color: #92AD40;
+  opacity: .8;
+  filter: alpha(opacity=80);*/
+}
+
+.areaselect-container img {
+  display: block;
+
+  width: 100%;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 100%;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  image-orientation: 0deg !important;
+}
+
+.areaselect-container .areaselect-cross{
+  cursor: crosshair;
+  float: left;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 17px;
+  height: 17px;
+  background-repeat: no-repeat;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAARCAYAAAA7bUf6AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4QEMCgQQEjakOQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAA4SURBVDjLY2AgAP4zMPwnpIaJgQqAKoYwkup0JI2MRPufGLHBEybUCVhSApMoMBqwNEqxQz8XAwDx2xYGOGJvCgAAAABJRU5ErkJggg==');
+}
+
+.areaselect-canvas,
+.areaselect-modal {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.areaselect-canvas {
+  /*background-color: #fff;
+  opacity: .3;
+  filter: alpha(opacity=30);*/
+  cursor: crosshair;
+}
+
+/**
+ * Used to position the touch sensitive area over the image to cover
+ * the build plate coordinate grid area.
+ */
+.areaselect-wrap-box {
+  position: absolute;
+  top: 4.5%;
+  right: 4%;
+  bottom: 4%;
+  left: 4%;
+}
+
+.areaselect-drag-box {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.areaselect-dashed {
+  position: absolute;
+
+  display: block;
+
+  opacity: .5;
+  border: 0 dashed #eee;
+
+  filter: alpha(opacity=50);
+}
+
+.areaselect-dashed.dashed-h {
+  top: 33.33333%;
+  left: 0;
+
+  width: 100%;
+  height: 33.33333%;
+
+  border-top-width: 1px;
+  border-bottom-width: 1px;
+}
+
+.areaselect-dashed.dashed-v {
+  top: 0;
+  left: 33.33333%;
+
+  width: 33.33333%;
+  height: 100%;
+
+  border-right-width: 1px;
+  border-left-width: 1px;
+}
+
+.areaselect-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  display: block;
+
+  width: 0;
+  height: 0;
+
+  opacity: .75;
+
+  filter: alpha(opacity=75);
+}
+
+.areaselect-center:before,
+.areaselect-center:after {
+  position: absolute;
+
+  display: block;
+
+  content: ' ';
+
+  background-color: #eee;
+}
+
+.areaselect-center:before {
+  top: 0;
+  left: -3px;
+
+  width: 7px;
+  height: 1px;
+}
+
+.areaselect-center:after {
+  top: -3px;
+  left: 0;
+
+  width: 1px;
+  height: 7px;
+}
+
+.areaselect-face,
+.areaselect-line,
+.areaselect-point {
+  position: absolute;
+
+  display: block;
+
+  width: 100%;
+  height: 100%;
+}
+
+.areaselect-face {
+  top: 0;
+  left: 0;
+
+  background-color: #fff;
+  
+  cursor: crosshair;
+  
+  opacity: .3;
+  filter: alpha(opacity=30);
+}
+
+.areaselect-invisible {
+  opacity: 0;
+
+  filter: alpha(opacity=0);
+}
+
+.areaselect-bg {
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0iAAAAA3NCSVQICAjb4U/gAAAABlBMVEXMzMz////TjRV2AAAACXBIWXMAAArrAAAK6wGCiw1aAAAAHHRFWHRTb2Z0d2FyZQBBZG9iZSBGaXJld29ya3MgQ1M26LyyjAAAABFJREFUCJlj+M/AgBVhF/0PAH6/D/HkDxOGAAAAAElFTkSuQmCC');
+}
+
+.areaselect-hide {
+  position: absolute;
+
+  display: block;
+
+  width: 0;
+  height: 0;
+}
+
+.areaselect-hidden {
+  display: none !important;
+}
+
+/* area addons */
+.areaselect-line {
+  background-color: #39f;
+}
+
+.areaselect-line.line-e {
+  top: 0;
+  right: -1px;
+
+  width: 1px;
+
+  cursor: e-resize;
+}
+
+.areaselect-line.line-n {
+  top: -1px;
+  left: 0;
+
+  height: 1px;
+
+  cursor: n-resize;
+}
+
+.areaselect-line.line-w {
+  top: 0;
+  left: -1px;
+
+  width: 1px;
+
+  cursor: w-resize;
+}
+
+.areaselect-line.line-s {
+  bottom: -1px;
+  left: 0;
+
+  height: 1px;
+
+  cursor: s-resize;
+}
+
+.areaselect-point {
+  width: 5px;
+  height: 5px;
+
+  opacity: .75;
+  background-color: #39f;
+
+  filter: alpha(opacity=75);
+}
+
+.areaselect-point.point-e {
+  top: 50%;
+  right: -3px;
+
+  margin-top: -3px;
+
+  cursor: e-resize;
+}
+
+.areaselect-point.point-n {
+  top: -3px;
+  left: 50%;
+
+  margin-left: -3px;
+
+  cursor: n-resize;
+}
+
+.areaselect-point.point-w {
+  top: 50%;
+  left: -3px;
+
+  margin-top: -3px;
+
+  cursor: w-resize;
+}
+
+.areaselect-point.point-s {
+  bottom: -3px;
+  left: 50%;
+
+  margin-left: -3px;
+
+  cursor: s-resize;
+}
+
+.areaselect-point.point-ne {
+  top: -3px;
+  right: -3px;
+
+  cursor: ne-resize;
+}
+
+.areaselect-point.point-nw {
+  top: -3px;
+  left: -3px;
+
+  cursor: nw-resize;
+}
+
+.areaselect-point.point-sw {
+  bottom: -3px;
+  left: -3px;
+
+  cursor: sw-resize;
+}
+
+.areaselect-point.point-se {
+  right: -3px;
+  bottom: -3px;
+
+  width: 20px;
+  height: 20px;
+
+  cursor: se-resize;
+
+  opacity: 1;
+
+  filter: alpha(opacity=100);
+}
+
+.areaselect-point.point-se:before {
+  position: absolute;
+  right: -50%;
+  bottom: -50%;
+
+  display: block;
+
+  width: 200%;
+  height: 200%;
+
+  content: ' ';
+
+  opacity: 0;
+  background-color: #39f;
+
+  filter: alpha(opacity=0);
+}
+
+@media (min-width: 768px) {
+  .areaselect-point.point-se {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+@media (min-width: 992px) {
+  .areaselect-point.point-se {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .areaselect-point.point-se {
+    width: 5px;
+    height: 5px;
+
+    opacity: .75;
+
+    filter: alpha(opacity=75);
+  }
+}
