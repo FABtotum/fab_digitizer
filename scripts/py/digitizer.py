@@ -80,13 +80,11 @@ class Application(GCodePusher):
         :param y: Y position
         :rtype: float
         """
-        self.send("M401")
-        self.send('G0 X{0} Y{1} F{2}'.format(x, y, self.XY_FEEDRATE) )
-        self.send('M400')
+        self.move_to_xy(x, y)
+        time.sleep(1)
         
-        #reply = self.send('G30', expected_reply = 'echo:', timeout = 200)
-        reply = self.send('G30', timeout = 200)
-        result = parseG30(reply)
+        reply = self.send('G38', timeout = 200)
+        result = parseG38(reply)
         if result:
             x = result['x']
             y = result['y']
@@ -94,6 +92,29 @@ class Application(GCodePusher):
             return [x,y,z,1]
             
         return None
+    
+    def move_to_xy(self, x, y):
+        """
+        Move head to X,Y position
+        
+        :param x: X position
+        :param y: Y position
+        """
+        self.send('G90')
+        self.send('G0 X{0} Y{1} F{2}'.format(x, y, self.XY_FEEDRATE) )
+        self.send('M400')
+    
+    def move_up(self, up=SAFE_Z_OFFSET):
+        """
+        Move away from bed
+        
+        :param up: Amount to move away from the bed
+        :type up: float
+        """
+        self.send('G91')
+        self.send('G0 Z{0} F{1}'.format(up, self.Z_FEEDRATE) )
+        self.send('M400')
+        self.send('G90')
         
     def save_as_cloud(self, points, cloud_file):
         """
@@ -204,8 +225,51 @@ class Application(GCodePusher):
         
         self.stop()
         
-    def run_test(self, x1, y1, x2, y2):
-        pass
+    def run_test(self, x1, y1, x2, y2, homing):
+        # Ensure axis position is known
+        if homing == 'xy':
+            self.send('G27 X Y');
+        elif homing == 'xyz':
+            self.send('G27');
+        elif homing == 'skip':
+            # No homing
+            pass
+        
+        self.trace('Homing finished')
+        
+        self.send('M746 S2');
+            
+        points = [
+            (x1,y1),
+            (x1, y2),
+            (x2, y2),
+            (x2,y1)
+        ]
+        
+        self.trace('Starting test probing')
+        
+        done = False
+        
+        while not done:
+            try:
+
+                for pt in points:
+                    result = self.probe( pt[0], pt[1] )
+                    print result
+                    if result is None:
+                        raise Exception('Homing lost')
+                    self.move_up()
+                    time.sleep(0.5)
+                    
+                done = True
+            except:
+                self.trace('Motors were off. Forced homing...')
+                self.send('G27');
+            
+        
+        self.move_to_xy( x1, y1 )
+        
+        self.send('M746 S0');
 
 def main():
     config = ConfigService()
@@ -236,6 +300,7 @@ def main():
     parser.add_argument("--email",             help="Send an email on task finish", action='store_true', default=False)
     parser.add_argument("--shutdown",          help="Shutdown on task finish", action='store_true', default=False )
     parser.add_argument("--test",              help="Only touch the 4 corners as a visual area test", action='store_true', default=False )
+    parser.add_argument("--homing",            help="Homing action (xy|xyz|skip)", default='xyz' )
     
     # GET ARGUMENTS
     args = parser.parse_args()
@@ -257,6 +322,8 @@ def main():
     safe_z          = float(args.safe_z)
     threshold       = float(args.threshold)
     max_skip        = float(args.max_skip)
+    test_only       = args.test
+    homing          = args.homing
     
     object_id       = int(args.object_id)
     object_name     = args.object_name
@@ -270,15 +337,18 @@ def main():
 
     app = Application(standalone, lang, send_email)
 
-    app_thread = Thread( 
-            target = app.run, 
-            args=( [task_id, object_id, object_name, file_name, x1, y1, x2, y2, probe_density, safe_z, threshold, max_skip, cloud_file] )
-            )
-    app_thread.start()
+    if test_only:
+         app.run_test(x1, y1, x2, y2, homing)
+    else:
+        app_thread = Thread( 
+                target = app.run, 
+                args=( [task_id, object_id, object_name, file_name, x1, y1, x2, y2, probe_density, safe_z, threshold, max_skip, cloud_file] )
+                )
+        app_thread.start()
 
-    # app.loop() must be started to allow callbacks
-    app.loop()
-    app_thread.join()
+        # app.loop() must be started to allow callbacks
+        app.loop()
+        app_thread.join()
 
 if __name__ == "__main__":
     main()

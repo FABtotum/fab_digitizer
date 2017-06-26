@@ -14,6 +14,7 @@ class Plugin_fab_digitizer extends FAB_Controller {
 	function __construct()
 	{
 		parent::__construct();
+		session_write_close(); //avoid freezing page
 		if(!$this->input->is_cli_request()){ //avoid this form command line
 			//check if there's a running task
 			//load libraries, models, helpers
@@ -60,6 +61,7 @@ class Plugin_fab_digitizer extends FAB_Controller {
 		
 		// task_wizard
 		$data['start_task_url'] = plugin_url('startTask');
+		$data['start_test_url'] = plugin_url('testProbingArea');
 		
 		$data['steps'] = array(
 				array('number'  => 1,
@@ -152,6 +154,9 @@ class Plugin_fab_digitizer extends FAB_Controller {
 		
 	}
 	
+	/**
+	 * Execute task script with params from UI
+	 */
 	public function startTask()
 	{
 		//load helpers
@@ -170,6 +175,39 @@ class Plugin_fab_digitizer extends FAB_Controller {
 			);
 			
 		$this->output->set_content_type('application/json')->set_output(json_encode($response));
+	}
+
+	/**
+	 * Probe the test area at it's border points
+	 */
+	public function testProbingArea()
+	{
+		$params = $this->input->post();
+		
+		$testArgs = array(
+				'-x' => $params['x1'],
+				'-y' => $params['y1'],
+				'-i' => $params['x2'],
+				'-j' => $params['y2'],
+				'--homing' => $params['homing'],
+				'--test' => null
+		);
+		
+		//if($params['skip_homing'] == 'true')  $scanArgs['-s'] = '';
+		
+		$this->load->helpers('fabtotum_helper');
+		$this->load->helper('plugin_helper');
+		
+		startPluginPyScript('digitizer.py', $testArgs, true);
+		
+		$response = array(
+			'start' => true, 
+			'message' => '', 
+			'trace' => '', 
+			'error' => ''
+			);
+		
+		$this->output->set_content_type('application/json')->set_output(json_encode(array($response)));
 	}
 
  }

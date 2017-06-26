@@ -4,15 +4,16 @@
 	max-width: 350px;
 }
 
-.touch-container {
+.area-section {
 	width: 100%;
 	max-width:350px;
-	
-	display: inline-block;
+	margin: 20px 0 0 0 !important;
+}
+
+.touch-container {
+	display: inline-block !important;
 	text-align: center;
 
 	/* if you need ie6/7 support */
 	*display: inline;
-	
-	margin: 20px 0 0 0 !important;
 }

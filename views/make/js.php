@@ -18,8 +18,8 @@
 			maxY : 230,
 			
 			
-			offsetX : 3,
-			offsetY : -10.5
+			offsetX : 2.7,
+			offsetY : -10.3
 		},
 		
 		width : 214,
@@ -49,15 +49,12 @@
 		$(':radio[name="object_type"]').on('change', setObjectMode);
 		setProbingQuality(probingQualities[0], 0);
 		initProbingSlider();
-		//initProbeCrop();
 		initProbingAreaSelector();
 		<?php endif; ?>
 		
-		$("#test-area-button").on('click', function(e){
-			//var result = area_select.areaselect('transform', 50, 50, 300, 300);
-			//console.log(result);
-		});
+		$("#test-area-button").on('click', testProbingArea);
 		
+		// x1,x2,y1,y2 inputs
 		$(".area-data").on('change', areaDataChange );
 	});
 	
@@ -70,10 +67,17 @@
 		
 		var result = area_select.areaselect('transform', x1, y1, Math.abs(x2-x1), Math.abs(y2-y1));
 		console.log(result);
-		//~ $(".probing-x1").val(x1.toFixed());
-		//~ $(".probing-y1").val(y1.toFixed());
-		//~ $(".probing-x2").val(x2.toFixed());
-		//~ $(".probing-y2").val(y2.toFixed());
+		
+		x1 = result.x;
+		y1 = result.y;
+		x2 = x1 + result.width;
+		y2 = y1 + result.height;
+		
+		
+		$(".probing-x1").val(x1.toFixed());
+		$(".probing-y1").val(y1.toFixed());
+		$(".probing-x2").val(x2.toFixed());
+		$(".probing-y2").val(y2.toFixed());
 	}
 	
 	function initProbingAreaSelector()
@@ -114,8 +118,8 @@
 			mappedWidth : realWidth,
 			mappedHeight : realHeight,
 			
-			initX:      20,
-			initY:      10,
+			initX:      probeMinX,
+			initY:      probeMinY,
 			initWidth:  50,
 			initHeight: 50,
 			
@@ -190,81 +194,7 @@
 					break;
 			}
 			setProbingQuality(probingQualities[qualityIndex], qualityIndex);
-		});		
-	}
-	
-	/**
-	 * Initialize probe area selection in UI
-	 */
-	function initProbeCrop()
-	{
-		var $image = $('#image');
-		$(".probing-x1").attr( {'min' : buildPlateDimensions.probe.minX,
-								'max' : buildPlateDimensions.probe.maxX} );
-		$(".probing-x2").attr( {'min' : buildPlateDimensions.probe.minX,
-								'max' : buildPlateDimensions.probe.maxX} );
-		$(".probing-y1").attr( {'min' : buildPlateDimensions.probe.minY,
-								'max' : buildPlateDimensions.probe.maxY} );
-		$(".probing-y2").attr( {'min' : buildPlateDimensions.probe.minY,
-								'max' : buildPlateDimensions.probe.maxY} );
-		
-		var xCorrect = buildPlateImageOffsets.left;
-		var yCorrect = buildPlateImageOffsets.top;   
-		var realWidth = buildPlateDimensions.probe.width + buildPlateImageOffsets.left + buildPlateImageOffsets.right;
-		var realHeight = buildPlateDimensions.probe.height + buildPlateImageOffsets.top + buildPlateImageOffsets.bottom;
-
-		var probeLeft = xCorrect + buildPlateDimensions.probe.minX;
-		var probeTop  = yCorrect + (buildPlateDimensions.probe.height - buildPlateDimensions.probe.maxY);
-		var probeWidth = buildPlateDimensions.probe.maxX - buildPlateDimensions.probe.minX;
-		var probeHeight = buildPlateDimensions.probe.maxY - buildPlateDimensions.probe.minY;
-
-		var options = {
-			responsive: true,
-			guides: false,
-			viewMode: 1,
-			toggleDragModeOnDblclick : false,
-			zoomable: false,
-			cropBoxResizable: true,
-			
-			// Bed mapping
-			useMappedDimensions : true,
-			mappedWidth : realWidth,
-			mappedHeight : realHeight,
-			
-			initCropBoxX : probeLeft,
-			initCropBoxY : probeTop,
-			initCropBoxWidth : probeWidth, 
-			initCropBoxHeight : probeHeight,
-			
-			minCropBoxLeft : probeLeft,
-			minCropBoxTop : probeTop,
-			
-			maxCropBoxWidth : probeWidth,
-			maxCropBoxHeight : probeHeight,
-			
-			minCropBoxHeight: 5,
-			minCropBoxWidth: 5,
-			
-			background: false,
-			crop: function (e) {}
-		};
-		
-		$image.on({
-		'crop.cropper': function (e) {
-			var tmp1 = $image.cropper('mapToDimensionNatural', e.x, e.y);
-			var tmp2 = $image.cropper('mapToDimensionNatural', e.width, e.height);
-			
-			var x1 = Math.abs(tmp1.x - xCorrect);
-			var x2 = Math.abs(tmp1.x + tmp2.x - xCorrect);
-			var y2 = Math.abs(buildPlateDimensions.probe.height - (tmp1.y - yCorrect) );
-			var y1 = Math.abs(buildPlateDimensions.probe.height - (tmp1.y + tmp2.y - yCorrect) );
-			
-			$(".probing-x1").val(x1.toFixed());
-			$(".probing-y1").val(y1.toFixed());
-			$(".probing-x2").val(x2.toFixed());
-			$(".probing-y2").val(y2.toFixed());
-		},
-	  }).cropper(options);
+		});
 	}
 
 	/**
@@ -353,6 +283,42 @@
 			$(".section-existing-object").show();
 			$(".section-new-object").hide();
 		}
+	}
+	
+	/**
+	 *
+	 */
+	function testProbingArea(e)
+	{
+		var button = $(e.toElement);
+		
+		var offsetX = buildPlateDimensions.probe.offsetX;
+		var offsetY = buildPlateDimensions.probe.offsetY;
+		
+		var homing = button.attr('data-homing');
+		button.attr('data-homing', 'skip');
+		
+		var data = {
+			'x1' : 			( parseInt($(".probing-x1").val()) + offsetX), 
+			'y1' : 			( parseInt($(".probing-y1").val()) + offsetY), 
+			'x2' : 			( parseInt($(".probing-x2").val()) + offsetX), 
+			'y2' : 			( parseInt($(".probing-y2").val()) + offsetY),
+			'homing' : homing
+		};
+		
+		$.ajax({
+			type: 'post',
+			data: data,
+			url: '<?php echo site_url($start_test_url); ?>',
+			dataType: 'json'
+		}).done(function(response) {
+			if(response.start == false){
+				fabApp.showErrorAlert(response.message);
+			}else{
+				// do nothing
+			}
+			closeWait();
+		})
 	}
 
 	/**

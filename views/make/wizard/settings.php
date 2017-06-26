@@ -40,15 +40,17 @@
 <hr class="simple">
 <div class="row">
 	<div class="col-sm-3 text-center">
-		<div>
-			<div class="touch-container">
-				<img class="bed-image" src="/assets/img/std/hybrid_bed_v2_small.jpg" >
+			<div class="area-section">
+				<div class="touch-container">
+					<img class="bed-image" src="/assets/img/std/hybrid_bed_v2_small.jpg" >
+				</div>
+				<div>
+					<button type="button" class="btn btn-default btn-sm btn-block" data-homing="xyz" id="test-area-button"><?php echo _("Test area");?> <i class="fa fa-level-down"></i> </button>
+					<div class="note">
+						<p><?php echo _("Press to test the selected area"); ?></p>
+					</div>
+				</div>
 			</div>
-			<button type="button" class="btn btn-default btn-sm btn-block" data-skip-homing="false" id="test-area-button"><?php echo _("Test area");?> <i class="fa fa-level-down"></i> </button>
-			<div class="note">
-				<p><?php echo _("Press to test the selected area"); ?></p>
-			</div>
-		</div>
 	</div>
 	<div class="col-sm-9">
 		<div class="row">
