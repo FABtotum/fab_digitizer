@@ -4,10 +4,10 @@
 			<fieldset>
 				<section>
 					<label class="radio">
-						<input type="radio" id="object_type" name="object_type" checked="checked" value="new"><i></i> <?php echo _("Create new object");?>
+						<input type="radio" id="object_type" name="object_type" value="new" <?php echo $object_id?'':'checked="checked"';?> ><i></i> <?php echo _("Create new object");?>
 					</label>
 					<label class="radio">
-						<input type="radio" id="object_type" name="object_type" value="add"><i></i> <?php echo _("Add to an existing object");?>
+						<input type="radio" id="object_type" name="object_type" value="add" <?php echo $object_id?'checked="checked"':'';?>><i></i> <?php echo _("Add to an existing object");?>
 					</label>
 				</section>
 			</fieldset>

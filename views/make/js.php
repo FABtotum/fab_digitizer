@@ -35,7 +35,10 @@
 	<?php     endforeach;?>
 	<?php endif; ?>
 	
-	var objectMode = 'new';
+	var objectMode = '<?php echo $object_id ? 'add':'new'; ?>';
+	var idObject <?php echo $object_id ? ' = '.$object_id : ''; ?>;
+	var idFile = '';
+	
 	var area_select;
 	/******************************************************************/
 	
@@ -46,6 +49,15 @@
 		$('[data-toggle="tooltip"]').tooltip();
 		
 		<?php if(!$runningTask): ?>
+
+		if(objectMode == 'new'){
+			$(".section-existing-object").hide();
+			$(".section-new-object").show();
+		}else{
+			$(".section-existing-object").show();
+			$(".section-new-object").hide();
+		}
+
 		$(':radio[name="object_type"]').on('change', setObjectMode);
 		setProbingQuality(probingQualities[0], 0);
 		initProbingSlider();
@@ -118,10 +130,16 @@
 			mappedWidth : realWidth,
 			mappedHeight : realHeight,
 			
-			initX:      probeMinX,
+			/*initX:      probeMinX,
 			initY:      probeMinY,
 			initWidth:  50,
-			initHeight: 50,
+			initHeight: 50,*/
+			
+			initX:      30,
+			initY:      30,
+			initWidth:  5,
+			initHeight: 5,
+			
 			
 			minX: probeMinX,
 			maxX: probeMaxX,
@@ -275,8 +293,8 @@
 	function setObjectMode()
 	{
 		var radio = $(this);
-		objecMode = radio.val();
-		if(objecMode == 'new'){
+		objectMode = radio.val();
+		if(objectMode == 'new'){
 			$(".section-existing-object").hide();
 			$(".section-new-object").show();
 		}else{
@@ -306,6 +324,7 @@
 			'homing' : homing
 		};
 		
+		openWait(_("Probing selected area"));
 		$.ajax({
 			type: 'post',
 			data: data,
@@ -337,9 +356,9 @@
 		var offsetY = buildPlateDimensions.probe.offsetY;
 		
 		var data = {
-			'safe_z': 		$(".probing-z-hop").val(), 
-			'threshold': 	$(".probing-probe-skip").val(), 
-			'density' : 	$(".scan-probing-sqmm").html(),
+			'safe_z': 		parseFloat( $(".probing-z-hop").val() ), 
+			'threshold': 	parseFloat( $(".probing-probe-skip").val() ), 
+			'density' : 	parseInt( $(".scan-probing-sqmm").html() ),
 			'x1' : 			( parseInt($(".probing-x1").val()) + offsetX), 
 			'y1' : 			( parseInt($(".probing-y1").val()) + offsetY), 
 			'x2' : 			( parseInt($(".probing-x2").val()) + offsetX), 
@@ -348,7 +367,9 @@
 			'object'      : object_mode == 'new' ? $("#scan-object-name").val() : $("#scan-objects-list option:selected").val(),
 			'file_name'   : $("#scan-file-name").val()
 		};
-			
+		
+		console.log('DATA', data);
+		
 		$.ajax({
 			type: 'post',
 			data: data,
@@ -362,8 +383,7 @@
 				gotoWizardStep(3);
 				idTask = response.id_task;
 				//updateFileInfo(response.file);
-				disableCompleteSteps();
-				//initRunningTaskPage();
+				initRunningTaskPage();
 				ga('send', 'event', 'digitizer', 'start', 'scan started');
 			}
 			closeWait();

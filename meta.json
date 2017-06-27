@@ -8,7 +8,7 @@
     "author": "FABteam", 
     "menu": {
         "/make/fab_digitizer": {
-            "url": "plugin/fab_digitizer/make", 
+            "url": "plugin/fab_digitizer/scan", 
             "title": "Digitizer", 
             "icon": "fa-cube"
         }

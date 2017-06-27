@@ -29,6 +29,7 @@ from fractions import Fraction
 from threading import Event, Thread
 
 # Import external modules
+import numpy as np
 
 # Import internal modules
 from fabtotum.utils.translation import _, setLanguage
@@ -44,9 +45,12 @@ class Application(GCodePusher):
     
     MINIMAL_SAFE_Z  = 36.0
     SAFE_Z_OFFSET   = 2.0
-    XY_FEEDRATE     = 4000
+    XY_FEEDRATE     = 1500
     Z_FEEDRATE      = 1500
     E_FEEDRATE      = 800
+    XY_PROBE_FEEDRATE = 350
+    Z_PROBE_FEEDRATE  = 200
+    FLOAT_ERROR_MARGIN = 0.02
     
     def __init__(self, standalone = False, lang = 'en_US.UTF-8', send_email=False):
         super(Application, self).__init__(use_stdout=standalone, lang=lang, send_email=send_email)
@@ -55,7 +59,7 @@ class Application(GCodePusher):
         self.progress = 0.0
         
         self.scan_stats = {
-            'type'          : 'digitizer',
+            'type'          : 'probe',
             'projection'    : 'planar',
             'scan_total'    : 0,
             'scan_current'  : 0,
@@ -67,6 +71,8 @@ class Application(GCodePusher):
         
         self.add_monitor_group('scan', self.scan_stats)
         self.ev_resume = Event()
+        
+        self.cloud_file = None
     
     def get_progress(self):
         """ Custom progress implementation """
@@ -81,7 +87,6 @@ class Application(GCodePusher):
         :rtype: float
         """
         self.move_to_xy(x, y)
-        time.sleep(1)
         
         reply = self.send('G38', timeout = 200)
         result = parseG38(reply)
@@ -93,7 +98,7 @@ class Application(GCodePusher):
             
         return None
     
-    def move_to_xy(self, x, y):
+    def move_to_xy(self, x, y, feedrate = XY_FEEDRATE):
         """
         Move head to X,Y position
         
@@ -101,8 +106,53 @@ class Application(GCodePusher):
         :param y: Y position
         """
         self.send('G90')
-        self.send('G0 X{0} Y{1} F{2}'.format(x, y, self.XY_FEEDRATE) )
+        self.send('G0 X{0} Y{1} F{2}'.format(x, y, feedrate) )
         self.send('M400')
+    
+    def probe_move_to_xyz(self, x = None, y = None, z = None, feedrate = XY_PROBE_FEEDRATE):
+        """
+        Move the head to X,Y,Z position and stop if the probe get's touched
+        
+        :returns: X Y Z position
+        """
+        have_x = x is not None
+        have_y = y is not None
+        have_z = z is not None
+        
+        have_xy = have_x and have_y
+        have_xyz = have_x and have_y and have_z
+        have_only_x = have_x and (not have_y) and (not have_z)
+        have_only_y = (not have_x) and have_y and (not have_z)
+        
+        reply = ''
+        
+        if have_xy:
+            reply = self.send('G38 X{0} Y{1} F{2}'.format(x, y, feedrate), timeout = 200)
+        elif have_xyz:
+            reply = self.send('G38 X{0} Y{1} Z{2} F{3}'.format(x, y, z, feedrate), timeout = 200)
+        elif have_only_x:
+            reply = self.send('G38 X{0} F{1}'.format(x, feedrate), timeout = 200)
+        elif have_only_y:
+            reply = self.send('G38 X{0} F{1}'.format(x, feedrate), timeout = 200)
+    
+        result = parseG38(reply)
+    
+        print 'Result', result
+        print 'Target', x, y, z
+    
+        touched = False
+    
+        if result:
+            
+            if have_xy:
+                dx = abs(x - result['x'])
+                dy = abs(y - result['y'])
+                print 'D:', dx, dy
+                touched = ( abs(x - result['x']) > self.FLOAT_ERROR_MARGIN ) or ( abs(y - result['y']) > self.FLOAT_ERROR_MARGIN )
+            
+            return result, touched
+            
+        return None, True
     
     def move_up(self, up=SAFE_Z_OFFSET):
         """
@@ -115,20 +165,50 @@ class Application(GCodePusher):
         self.send('G0 Z{0} F{1}'.format(up, self.Z_FEEDRATE) )
         self.send('M400')
         self.send('G90')
-        
-    def save_as_cloud(self, points, cloud_file):
+    
+    def create_cloud(self, cloud_file):
         """
-        Save `points` to a file in asc format.
+        Create a file to store cloud points
         
-        :param points: Array of [x,y,z] points
-        :param cloud_file: Cloud file filename
-        :type points: list
+        :params cloud_file: Cloud file filename
         :type cloud_file: string
         """
-        with open(cloud_file,"w")  as cloud_file:
-            if len(points)>0:
-                for row in xrange(0, len(points)):
-                    cloud_file.write( '{0}, {1}, {2}\n'.format( points[row][0], points[row][1], points[row][2]))
+        #~ self.trace('creating file {0}'.format(cloud_file) )
+        self.scan_stats['cloud_size'] = 0.0
+        self.cloud_file = open(cloud_file, "w")
+    
+    def save_to_cloud(self, point):
+        """
+        Save a point to the created cloud file
+        """
+        #~ self.trace('storing {0}, {1}, {2}\n'.format( point[0], point[1], point[2]))
+        
+        line = '{0}, {1}, {2}\n'.format( point[0], point[1], point[2])
+        
+        self.scan_stats['cloud_size'] += len(line)
+        
+        self.cloud_file.write(line)
+    
+    def finish_cloud(self):
+        """
+        Finalize the could file
+        """
+        if self.cloud_file:
+            self.cloud_file.close()
+    
+    #~ def save_as_cloud(self, points, cloud_file):
+        #~ """
+        #~ Save `points` to a file in asc format.
+        
+        #~ :param points: Array of [x,y,z] points
+        #~ :param cloud_file: Cloud file filename
+        #~ :type points: list
+        #~ :type cloud_file: string
+        #~ """
+        #~ with open(cloud_file,"w")  as cloud_file:
+            #~ if len(points)>0:
+                #~ for row in xrange(0, len(points)):
+                    #~ cloud_file.write( '{0}, {1}, {2}\n'.format( points[row][0], points[row][1], points[row][2]))
         
     def store_object(self, task_id, object_id, object_name, cloud_file, file_name):
         """
@@ -192,8 +272,19 @@ class Application(GCodePusher):
     def state_change_callback(self, state):
         if state == 'resumed' or state == 'aborted':
             self.ev_resume.set()
-        
-    def run(self, task_id, object_id, object_name, file_name, x1, y1, x2, y2, probe_density, orig_safe_z, threshold, max_skip, cloud_file):
+    
+    def custom_macro(self, macro_name):
+        if macro_name == 'init_digitizer':
+            self.send('M746 S2');
+            self.send("M733 S0")
+            self.send("M201 X100 Y100")
+            
+        elif macro_name == 'deinit_digitizer':
+            self.send("M733 S1")
+            self.send('M746 S0');
+            self.send("M201 X10000 Y10000")
+            
+    def run(self, task_id, object_id, object_name, file_name, x1, y1, x2, y2, homing, probe_density, orig_safe_z, threshold, max_skip, cloud_file):
         """
         Run the print.
         
@@ -203,18 +294,170 @@ class Application(GCodePusher):
         :type task_id: int
         """
 
-        self.prepare_task(task_id, 'scan')
+        self.resetTrace()
+        
+        self.trace( _('Initializing physical probing') )
+
+        self.prepare_task(task_id, task_type='scan', task_controller='plugin/fab_digitizer/scan')
         self.set_task_status(GCodePusher.TASK_RUNNING)
         
         if self.standalone:
-            self.exec_macro("start_probe_scan")
+            # Ensure axis position is known
+            if homing == 'xy':
+                self.send('G27 X Y');
+            elif homing == 'xyz':
+                self.send('G27');
+            elif homing == 'skip':
+                # No homing
+                pass
             
+            self.exec_macro("start_probe_scan")
+        
+        ################################################################
+        ### Probing 
+        ################################################################
+        
+        #~ points = None
+        point_count = 0
+        
+        if orig_safe_z < 1.0:
+            orig_safe_z = 1.0
+        
+        step  = round(1.0 / probe_density, 3) # round to 3 decimanl points
+        
+        x_num = int( abs(x2 - x1) / step )
+        y_num = int( abs(y2 - y1) / step )
+        total_num = x_num * y_num
+        probe_num = 0
+        
+        self.scan_stats['scan_total'] = total_num;
+        with self.monitor_lock:
+            self.update_monitor_file()
+            
+        # Planned number of skips
+        skipping = 0
+        # Number of skips left to do
+        to_skip = 0
+        
+        self.custom_macro("init_digitizer")
+        
+        self.create_cloud(cloud_file)
+        
+        y_direction = 1
+        y_start = y1
+        
+        self.move_to_xy(x1, y1)
+        
+        self.trace( _('Physical probing started') )
+        
+        for x_idx in xrange(0, x_num):
+            x_pos = x1 + step*x_idx
+            
+            if self.is_aborted():
+                break
+            
+            skipping = 0
+            to_skip = 0
+            prev_point = None
+            slope = 0.0
+            
+            for y_idx in xrange(0, y_num):
+                y_pos = y_start + y_direction*step*y_idx
+                
+                if self.is_paused():
+                    self.trace("Paused")
+                    self.ev_resume.wait()
+                    self.ev_resume.clear()
+                    self.trace("Resuming")
+                
+                if self.is_aborted():
+                    break
+                
+                if to_skip == 0:
+                
+                    # Get Z at (x_pos, y_pos)
+                    
+                    hit_position, touched = self.probe_move_to_xyz(x=x_pos, y=y_pos)
+                    
+                    new_point = self.probe(x_pos, y_pos)
+                                        
+                    #print "probed point: ", new_point
+                    
+                    if new_point != None:
+                        # No old_z stored
+                        if prev_point is None:
+                            prev_point = new_point
+                            slope = 0.0
+                        else:
+                            dz = float( abs(prev_point[2] - new_point[2]) )
+                            dy = float( abs(prev_point[1] - new_point[1]) )
+                            
+                            try:
+                                slope = dz / dy
+                            except:
+                                slope = 0.0
+                                
+                            if dz < threshold:
+                                #print "** dz < threshold ", dz, threshold
+                                if skipping < max_skip:
+                                    skipping += 1
+                                to_skip = skipping
+                            else:
+                                skipping -= 2
+                                if skipping < 0:
+                                    skipping = 0
+                        
+                        self.save_to_cloud(new_point)
+                        
+                        point_count += 1
+                        
+                        #print "-- slope", slope
+                        
+                        safe_z = new_point[2] + (to_skip) * step * slope
+                        
+                        if safe_z < self.MINIMAL_SAFE_Z:
+                            safe_z = self.MINIMAL_SAFE_Z
+                            
+                        safe_z = safe_z + self.SAFE_Z_OFFSET + orig_safe_z
+                        self.send('G0 Z{0} F{1}'.format(safe_z, self.Z_FEEDRATE) )
+                        self.send('M400')
+                else:
+                    # Reduce the counter of points to be skipped
+                    #print "skipping a point: to_skip = ", to_skip
+                    to_skip -= 1
+                    
+                probe_num += 1
+                if to_skip == 0:
+                    self.scan_stats['scan_current'] = probe_num
+                    self.scan_stats['point_count'] = point_count
+                    self.progress = ( float(probe_num) / float(total_num) ) * 100.0
+                    with self.monitor_lock:
+                        self.update_monitor_file()
+        
+            if y_direction == 1:
+                y_direction = -1
+                y_start = y2 - step
+            else:
+                y_direction = 1
+                y_start = y1
+        
+        self.progress = ( float(probe_num) / float(total_num) ) * 100.0
+        
+        self.custom_macro("deinit_digitizer")
+            
+        ################################################################
+        
         if self.is_aborted():
             self.set_task_status(GCodePusher.TASK_ABORTING)
         else:
             self.set_task_status(GCodePusher.TASK_COMPLETING)
             
         self.exec_macro("end_scan")
+        
+        self.trace( _("Saving point cloud to file {0}").format(cloud_file) )
+        #~ self.save_as_cloud(points, cloud_file)
+        self.finish_cloud()
+        self.store_object(task_id, object_id, object_name, cloud_file, file_name)
     
         if self.is_aborted():
             self.trace( _("Physical Probing aborted.") )
@@ -227,18 +470,21 @@ class Application(GCodePusher):
         
     def run_test(self, x1, y1, x2, y2, homing):
         # Ensure axis position is known
+        self.resetTrace()
+        
         if homing == 'xy':
+            self.trace('Homing X/Y axis')
             self.send('G27 X Y');
         elif homing == 'xyz':
+            self.trace('Homing all axis')
             self.send('G27');
         elif homing == 'skip':
             # No homing
+            self.trace('Homing skipped')
             pass
         
-        self.trace('Homing finished')
+        self.custom_macro("init_digitizer")
         
-        self.send('M746 S2');
-            
         points = [
             (x1,y1),
             (x1, y2),
@@ -246,30 +492,47 @@ class Application(GCodePusher):
             (x2,y1)
         ]
         
-        self.trace('Starting test probing')
-        
         done = False
-        
-        while not done:
-            try:
-
-                for pt in points:
-                    result = self.probe( pt[0], pt[1] )
-                    print result
-                    if result is None:
-                        raise Exception('Homing lost')
-                    self.move_up()
-                    time.sleep(0.5)
-                    
-                done = True
-            except:
-                self.trace('Motors were off. Forced homing...')
-                self.send('G27');
-            
+        aborted = False
         
         self.move_to_xy( x1, y1 )
         
-        self.send('M746 S0');
+        idx_label = ['first', 'second', 'third', 'fourth']
+        
+        while not done:
+            #~ try:
+            idx = 0
+            for pt in points:
+                self.trace('Moving to {0} point'.format(idx_label[idx]))
+                idx += 1
+                
+                result, touched = self.probe_move_to_xyz( x=pt[0], y=pt[1], feedrate = self.XY_FEEDRATE)
+                if not touched:
+                    result = self.probe( pt[0], pt[1] )
+                else:
+                    self.trace('Probe hit something, breaking off')
+                    aborted = True
+                    break
+                print result
+                
+                if result is None:
+                    raise Exception('Homing lost')
+                self.move_up()
+                time.sleep(0.5)
+            
+            done = True
+            #~ except:
+                #~ self.trace('Motors were off. Forced homing...')
+                #~ self.send('G27');
+            
+        if not aborted:
+            self.move_to_xy( x1, y1 )
+        else:
+            self.move_up(up=self.MINIMAL_SAFE_Z)
+        
+        self.trace('Finished')
+        
+        self.custom_macro("deinit_digitizer")
 
 def main():
     config = ConfigService()
@@ -334,6 +597,9 @@ def main():
         standalone  = True
     else:
         standalone  = False
+        
+    if test_only:
+        standalone  = False
 
     app = Application(standalone, lang, send_email)
 
@@ -342,7 +608,7 @@ def main():
     else:
         app_thread = Thread( 
                 target = app.run, 
-                args=( [task_id, object_id, object_name, file_name, x1, y1, x2, y2, probe_density, safe_z, threshold, max_skip, cloud_file] )
+                args=( [task_id, object_id, object_name, file_name, x1, y1, x2, y2, homing, probe_density, safe_z, threshold, max_skip, cloud_file] )
                 )
         app_thread.start()
 
