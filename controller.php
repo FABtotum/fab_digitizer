@@ -71,7 +71,7 @@ class Plugin_fab_digitizer extends FAB_Controller {
 		// Safety check
 		if(!$task_is_running){
 			
-			$data['safety_check'] = safetyCheck("scan");
+			$data['safety_check'] = safetyCheck("scan", "any");
 			$data['safety_check']['url'] = 'std/safetyCheck/scan/any';
 			$data['safety_check']['content'] = $this->load->view( 'std/task_safety_check', $data, true );
 			

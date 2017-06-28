@@ -520,6 +520,32 @@
         
       if(width > maxWidth)
         width = maxWidth;
+        
+      if(height < options.minHeight)
+      {
+        var dh = options.minHeight - height;
+        height += dh;
+        switch(action)
+        {
+          case ACTION_SOUTH_WEST:
+          case ACTION_SOUTH_EAST:
+          case ACTION_SOUTH:
+            top -= dh;
+        }
+      }
+        
+      if(width < options.minWidth)
+      {
+        var dw = options.minWidth - width;
+        width = options.minWidth;
+        switch(action)
+        {
+          case ACTION_SOUTH_WEST:
+          case ACTION_NORTH_WEST:
+          case ACTION_WEST:
+            left -= dw;
+        }
+      }
       
       if(left < minX)
         left = minX;
