@@ -28,7 +28,7 @@ class Plugin_fab_digitizer extends FAB_Controller {
 
 	}
 	
-	public function scan($objectId = -1)
+	public function scan($fileId = -1)
 	{
 		$this->load->library('smart');
 		$this->load->helper('form');
@@ -36,18 +36,17 @@ class Plugin_fab_digitizer extends FAB_Controller {
 		$this->load->helper('utility_helper');
 		$this->load->helper('plugin_helper');
 		$this->load->model('Objects', 'objects');
+		$this->load->model('Files', 'files');
 		
 		$data = array();
 		$data['runningTask'] = $this->runningTask;
 		$data['object_id'] = '';
 		
-		$object = $this->objects->get($objectId, 1);
-		$object_is_ok = False;
+		$object = $this->files->getObject($fileId, 1);
 		
 		if($object)
 		{
-			$data['object_id'] = $objectId;
-			$object_is_ok = True;
+			$data['object_id'] = $object['id'];
 		}
 		
 		$data['objectsForDropdown'] = $this->objects->getObjectsForDropdown();
@@ -64,9 +63,6 @@ class Plugin_fab_digitizer extends FAB_Controller {
 		$data['type']       = 'scan';
 		$data['type_label'] = _("Digitizer");
 		$data['subtype']    = 'probe';
-		
-		//~ $data['wizard_jump_to'] = 4;
-		
 		
 		// Safety check
 		if(!$task_is_running){
@@ -135,17 +131,10 @@ class Plugin_fab_digitizer extends FAB_Controller {
 		
 		
 		$this->addJsInLine($this->load->view( plugin_url('make/js'), $data, true));
-
-		/*if(!$task_is_running){
-			$this->addJsInLine($this->load->view( 'std/task_safety_check_js', $data, true));
-			$this->addJsInLine($this->load->view( 'std/select_file_js', $data, true));
-			$this->addJsInLine($this->load->view( 'std/jog_setup_js', $data, true));
-		}*/
 		
 		$this->addJsInLine($this->load->view( 'std/task_wizard_js', $data, true));
-		$this->addJsInLine($this->load->view( plugin_url('make/task_execute_js'), $data, true));
-		$this->addJsInLine($this->load->view( plugin_url('make/task_finish_js'), $data, true));
-		//$this->addJsInLine($this->load->view( 'std/task_finished_js', $data, true));
+		$this->addJsInLine($this->load->view( 'std/task_execute_js', $data, true));
+		$this->addJsInLine($this->load->view( 'std/task_finished_js', $data, true));
 		
 		$this->content = $widget->print_html(true);
 		$this->view();

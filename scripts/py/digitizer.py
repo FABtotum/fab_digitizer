@@ -150,6 +150,11 @@ class Application(GCodePusher):
                 print 'D:', dx, dy
                 touched = ( abs(x - result['x']) > self.FLOAT_ERROR_MARGIN ) or ( abs(y - result['y']) > self.FLOAT_ERROR_MARGIN )
             
+            x = result['x']
+            y = result['y']
+            z = result['z']
+            result = [x,y,z,1]
+            
             return result, touched
             
         return None, True
@@ -275,13 +280,15 @@ class Application(GCodePusher):
     
     def custom_macro(self, macro_name):
         if macro_name == 'init_digitizer':
-            self.send('M746 S2');
-            self.send("M733 S0")
+            self.send('M746 S2') # Set external probe to head probe
+            self.send("M733 S0") # Disable homing check
+            self.send("M747 E1") # Invert probe state
             self.send("M201 X100 Y100")
             
         elif macro_name == 'deinit_digitizer':
             self.send("M733 S1")
-            self.send('M746 S0');
+            self.send('M746 S0') 
+            self.send("M747 E0") # Disable probe inversion
             self.send("M201 X10000 Y10000")
             
     def run(self, task_id, object_id, object_name, file_name, x1, y1, x2, y2, homing, probe_density, orig_safe_z, threshold, max_skip, cloud_file):
@@ -350,6 +357,8 @@ class Application(GCodePusher):
         
         self.trace( _('Physical probing started') )
         
+        movement_direction = (0.0, 0.0)
+        
         for x_idx in xrange(0, x_num):
             x_pos = x1 + step*x_idx
             
@@ -362,6 +371,7 @@ class Application(GCodePusher):
             slope = 0.0
             
             for y_idx in xrange(0, y_num):
+                
                 y_pos = y_start + y_direction*step*y_idx
                 
                 if self.is_paused():
@@ -378,6 +388,39 @@ class Application(GCodePusher):
                     # Get Z at (x_pos, y_pos)
                     
                     hit_position, touched = self.probe_move_to_xyz(x=x_pos, y=y_pos)
+                    
+                    if touched:
+                        print "Hit Position:", hit_position
+                        self.save_to_cloud(hit_position)
+
+
+                    safe_x_pos = x_pos
+                    if y_idx == 0:
+                        #~ if x_idx == 0:
+                            #~ safe_x_pos = x1
+                        #~ else:
+                            #~ safe_x_pos = x1 + step*(x_idx-1)
+                        safe_y_pos = y_start
+                    else:
+                        safe_y_pos = y_start + y_direction*step*(y_idx-1)
+                    
+                    while touched:
+                        
+                        # We hit something so let's move back to a safe
+                        # position and increase the safe z offset
+                        self.move_to_xy(x=safe_x_pos, y=safe_y_pos)
+                        time.sleep(0.5)
+                        self.move_up()
+                        
+                        hit_position, touched = self.probe_move_to_xyz(x=x_pos, y=y_pos)
+                        if touched:
+                            print "Hit Position:", hit_position
+                            self.save_to_cloud(hit_position)
+                            
+                        if self.is_aborted():
+                            break
+                    
+                    #~ else:
                     
                     new_point = self.probe(x_pos, y_pos)
                                         

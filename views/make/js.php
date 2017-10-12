@@ -57,6 +57,13 @@
 			$(".section-existing-object").show();
 			$(".section-new-object").hide();
 		}
+		
+		<?php if($object_id): ?>
+		
+		$(".section-existing-object option").prop('selected', false).filter(function() {
+			return $(this).val() == idObject;  
+		}).prop('selected', true);
+		<?php endif;?>
 
 		$(':radio[name="object_type"]').on('change', setObjectMode);
 		setProbingQuality(probingQualities[0], 0);
@@ -135,10 +142,10 @@
 			initWidth:  50,
 			initHeight: 50,*/
 			
-			initX:      30,
-			initY:      30,
-			initWidth:  5,
-			initHeight: 5,
+			initX:      115,
+			initY:      50,
+			initWidth:  30,
+			initHeight: 30,
 			
 			
 			minX: probeMinX,
