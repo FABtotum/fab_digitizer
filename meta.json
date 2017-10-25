@@ -7,7 +7,7 @@
     "name": "Digitizer", 
     "author": "FABteam", 
     "menu": {
-        "/make/fab_digitizer": {
+        "/make/digitizer": {
             "url": "plugin/fab_digitizer/scan", 
             "title": "Digitizer", 
             "icon": "fa-cube"

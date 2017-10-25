@@ -58,12 +58,12 @@
 			$(".section-new-object").hide();
 		}
 		
-		<?php if($object_id): ?>
-		
-		$(".section-existing-object option").prop('selected', false).filter(function() {
-			return $(this).val() == idObject;  
-		}).prop('selected', true);
-		<?php endif;?>
+			<?php if($object_id): ?>
+			
+			$(".section-existing-object option").prop('selected', false).filter(function() {
+				return $(this).val() == idObject;  
+			}).prop('selected', true);
+			<?php endif;?>
 
 		$(':radio[name="object_type"]').on('change', setObjectMode);
 		setProbingQuality(probingQualities[0], 0);
@@ -390,7 +390,7 @@
 				gotoWizardStep(3);
 				idTask = response.id_task;
 				//updateFileInfo(response.file);
-				initRunningTaskPage();
+				initRunningTaskPage('digitizer');
 				ga('send', 'event', 'digitizer', 'start', 'scan started');
 			}
 			closeWait();
